@@ -1,0 +1,26 @@
+{
+    "id": "66CF2223",
+    "path": "~/GitHub/powerplus/R/rpower_t_test.R",
+    "project_path": "R/rpower_t_test.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1733215638906.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "413,29",
+        "scrollLine": "398"
+    },
+    "folds": "192|19|294|2|\n539|31|558|4|\n587|13|675|2|\n",
+    "lastKnownWriteTime": 1733215423,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1733234333109,
+    "read_only": false,
+    "read_only_alternatives": []
+}
