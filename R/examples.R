@@ -1,13 +1,14 @@
 # Example 1: Basic two-sample t-test with single effect size
 rpower_t_test(
   d = 0.5,                    # Medium effect size
-  power = 0.80,               # Standard power
-  alpha = 0.05,
-  n1 = NULL,
+  power = c(0.8,0.9),               # Standard power
+  alpha = c(0.05,0.1),
+  n1 =NULL,
   n2=NULL,# Standard alpha
-  type = "paired",
+  type = "two.sample",
   alternative = "two.sided",
   drop = 0,
+  ratio=2,
   plot = T
 )
 
