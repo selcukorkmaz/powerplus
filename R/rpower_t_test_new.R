@@ -15,7 +15,7 @@ power_t_test <- function(n1 = NULL,
                          alpha = 0.05,
                          drop = 0,
                          type = c("two.sample", "one.sample", "paired"),
-                         alternative = c("two.sided", "less", "greater"),
+                         tail = c("one", "two"),
                          ratio = 1,
                          sd1 = 1,
                          sd2 = NULL,
@@ -26,7 +26,7 @@ power_t_test <- function(n1 = NULL,
 
   # Match arguments
   type <- match.arg(type)
-  alternative <- match.arg(alternative)
+  tail <- match.arg(tail)
 
   # Validate n1 and n2 based on test type
   if (type != "two.sample" && !is.null(n2)) {
@@ -56,36 +56,18 @@ power_t_test <- function(n1 = NULL,
                        "two.sample" = 2,
                        "paired" = 1)
 
-  if (alternative == "less") {
+  if (tail == "two") {
     p = quote({
       if (type == "two.sample") {
         n1 <- n / (1 + ratio)
         n2 <- n - n1
         v1 <- sd1^2 / n1
         v2 <- sd2^2 / n2
+        if(sd1 != sd2){
         df <- (v1 + v2)^2 / ((v1^2 / (n1 - 1)) + (v2^2 / (n2 - 1)))
-        ncp <- d / sqrt(v1 + v2)
-      } else {
-        df <- (n - 1) * hypothesis
-        ncp <- sqrt(n / hypothesis) * d
-      }
-      pt(
-        qt(alpha, df, lower = TRUE),
-        df,
-        ncp = ncp,
-        lower = TRUE
-      )
-    })
-  }
-
-  if (alternative == "two.sided") {
-    p = quote({
-      if (type == "two.sample") {
-        n1 <- n / (1 + ratio)
-        n2 <- n - n1
-        v1 <- sd1^2 / n1
-        v2 <- sd2^2 / n2
-        df <- (v1 + v2)^2 / ((v1^2 / (n1 - 1)) + (v2^2 / (n2 - 1)))
+        }else{
+          df <- n1 + n2 - 2
+        }
         ncp <- d / sqrt(v1 + v2)
       } else {
         df <- (n - 1) * hypothesis
@@ -97,14 +79,18 @@ power_t_test <- function(n1 = NULL,
     })
   }
 
-  if (alternative == "greater") {
+  if (tail == "one") {
     p = quote({
       if (type == "two.sample") {
         n1 <- n / (1 + ratio)
         n2 <- n - n1
         v1 <- sd1^2 / n1
         v2 <- sd2^2 / n2
-        df <- (v1 + v2)^2 / ((v1^2 / (n1 - 1)) + (v2^2 / (n2 - 1)))
+        if(sd1 != sd2){
+          df <- (v1 + v2)^2 / ((v1^2 / (n1 - 1)) + (v2^2 / (n2 - 1)))
+        }else{
+          df <- n1 + n2 - 2
+        }
         ncp <- d / sqrt(v1 + v2)
       } else {
         df <- (n - 1) * hypothesis
@@ -121,87 +107,38 @@ power_t_test <- function(n1 = NULL,
 
   if (is.null(power)) {
     res = eval(p)
-  } else # Inside power_t_test function, add this block:
+  } else if (is.null(n1)) {
+    # For n calculation, ensure we don't exceed population size if specified
+    upper_bound <- if (!is.null(population)) population else 1e+09
+    lower_bound <- if (type == "two.sample") 4 else 2
 
-    # Calculate required sample size when n1 is NULL
-    if (is.null(n1)) {
-      if (is.null(power) || is.null(d) || is.null(alpha)) {
-        stop("When calculating sample size, power, effect size, and alpha must all be specified")
-      }
-
-      # Set bounds for sample size search
-      lower_bound <- if (type == "two.sample") 4 else 2
-      upper_bound <- if (!is.null(population)) population else 1e+09
-
-      # Function to calculate power for a given sample size
-      power_fn <- function(n) {
-        if (type == "two.sample") {
-          n1 <- n/2
-          n2 <- n/2
-        } else {
-          n1 <- n
-          n2 <- NULL
-        }
-
-        if (alternative == "two.sided") {
-          if (type == "two.sample") {
-            v1 <- sd1^2 / n1
-            v2 <- sd2^2 / n2
-            df <- (v1 + v2)^2 / ((v1^2 / (n1 - 1)) + (v2^2 / (n2 - 1)))
-            ncp <- d / sqrt(v1 + v2)
-          } else {
-            df <- (n1 - 1)
-            ncp <- sqrt(n1) * d
-          }
-          ta <- qt(alpha/2, df, lower = FALSE)
-          pow <- pt(ta, df, ncp = ncp, lower = FALSE) +
-            pt(-ta, df, ncp = ncp, lower = TRUE)
-        } else if (alternative == "less") {
-          if (type == "two.sample") {
-            v1 <- sd1^2 / n1
-            v2 <- sd2^2 / n2
-            df <- (v1 + v2)^2 / ((v1^2 / (n1 - 1)) + (v2^2 / (n2 - 1)))
-            ncp <- d / sqrt(v1 + v2)
-          } else {
-            df <- (n1 - 1)
-            ncp <- sqrt(n1) * d
-          }
-          pow <- pt(qt(alpha, df, lower = TRUE), df, ncp = ncp, lower = TRUE)
-        } else {  # greater
-          if (type == "two.sample") {
-            v1 <- sd1^2 / n1
-            v2 <- sd2^2 / n2
-            df <- (v1 + v2)^2 / ((v1^2 / (n1 - 1)) + (v2^2 / (n2 - 1)))
-            ncp <- d / sqrt(v1 + v2)
-          } else {
-            df <- (n1 - 1)
-            ncp <- sqrt(n1) * d
-          }
-          pow <- pt(qt(alpha, df, lower = FALSE), df, ncp = ncp, lower = FALSE)
-        }
+    tryCatch({
+      res <- uniroot(function(n) {
+        pow <- try(eval(p), silent = TRUE)
+        if (inherits(pow, "try-error")) return(1)
         return(pow - power)
-      }
-
-      # Find required sample size
-      result <- try(uniroot(power_fn, c(lower_bound, upper_bound))$root)
-
-      if (inherits(result, "try-error")) {
+      }, c(lower_bound, upper_bound))$root
+    }, error = function(e) {
+      if (!is.null(population)) {
+        stop("Could not achieve desired power with given population size constraints")
+      } else {
         stop("Could not find valid sample size. Try adjusting effect size or power.")
       }
+    })
 
-      # Return total sample size and individual group sizes
-      total_n <- ceiling(result)
-      if (type == "two.sample") {
-        return(list(n1 = ceiling(total_n/2), n2 = ceiling(total_n/2), n = total_n))
-      } else {
-        return(list(n1 = total_n, n2 = NULL, n = total_n))
-      }
-    } else if (is.null(d)) {
-    if (alternative == "two.sided")
+
+    total_n <- ceiling(res)
+    if (type == "two.sample") {
+      return(list(n1 = ceiling(total_n/2), n2 = ceiling(total_n/2), n = total_n))
+    } else {
+      return(list(n1 = total_n, n2 = NULL, n = total_n))
+    }
+
+
+  } else if (is.null(d)) {
+    if (tail == "two")
       res <- uniroot(function(d) eval(p) - power, c(1e-07, 10))$root
-    if (alternative == "less")
-      res <- uniroot(function(d) eval(p) - power, c(-10, 5))$root
-    if (alternative == "greater")
+    if (tail == "one")
       res <- uniroot(function(d) eval(p) - power, c(-5, 10))$root
   } else if (is.null(alpha)) {
     res <- uniroot(function(alpha) eval(p) - power, c(1e-10, 1 - 1e-10))$root
@@ -219,7 +156,7 @@ rpower_t_test <- function(n1 = NULL,
                           drop = 0,
                           population = NULL,
                           type = c("two.sample", "one.sample", "paired"),
-                          alternative = c("two.sided", "less", "greater"),
+                          tail = c("two", "one"),
                           ratio = 1,
                           plot = TRUE,
                           sd1 = 1,
@@ -267,7 +204,7 @@ rpower_t_test <- function(n1 = NULL,
   if (is.null(sd2)) sd2 <- sd1
 
   type <- match.arg(type)
-  alternative <- match.arg(alternative)
+  tail <- match.arg(tail)
 
   # Calculate total n based on test type
   if (!is.null(n1)) {
@@ -296,18 +233,18 @@ rpower_t_test <- function(n1 = NULL,
             d = d[k],
             power = power[i],
             type = type,
-            alternative = alternative,
+            tail= tail,
             ratio = ratio,
             sd1 = sd1,
             sd2 = sd2,
             population = population
           )
 
-          if (type == "two.sample") {
-            n_list3[[k]] <- list(n1 = result$n1, n2 = result$n2)
-          } else {
+          # if (type == "two.sample") {
+            # n_list3[[k]] <- list(n1 = result$n1, n2 = result$n2)
+          # } else {
             n_list3[[k]] <- result
-          }
+          # }
         }
         names(n_list3) <- d
         n_list2[[j]] <- n_list3
@@ -353,23 +290,47 @@ rpower_t_test <- function(n1 = NULL,
 
     # Adjust n1 and n2 if it's a two-sample test
     if (type == "two.sample") {
+      sample = ifelse(drop > 0, res$`n'`, res$n)
+      odd_indices <- which(sample %% 2 != 0)
+      sample[odd_indices] <- sample[odd_indices] + 1
       if (ratio == 1) {
         # Adjust n' to be even where necessary
-        odd_indices <- which(res$`n'` %% 2 != 0)
-        res$`n'`[odd_indices] <- res$`n'`[odd_indices] + 1
-
-        res$n1 <- res$`n'` / 2
-        res$n2 <- res$`n'` / 2
+        if(drop > 0){
+          res$`n1'` <- sample / 2
+          res$`n2'` <- sample / 2
+        }else{
+          res$n1 <- sample / 2
+          res$n2 <- sample / 2
+        }
       } else if (ratio >= 1) {
+
         r2 <- ratio
         r1 <- 1
-        res$n1 <- round(res$`n'` / (r1 + r2) * r1)
-        res$n2 <- res$`n'` - res$n1
+
+        if(drop > 0){
+          res$`n1'` <- round(sample / (r1 + r2) * r1)
+          res$`n2'` <- sample - res$`n1'`
+
+          res$n1 <- round(res$n / (r1 + r2) * r1)
+          res$n2 <- res$n - res$n1
+        }else{
+          res$n1 <- round(sample / (r1 + r2) * r1)
+          res$n2 <- sample - res$n1
+        }
+
       } else {
         r2 <- 1
         r1 <- 1 / ratio
-        res$n2 <- round(res$`n'` / (r1 + r2) * r2)
-        res$n1 <- res$`n'` - res$n2
+
+        if(drop > 0){
+          res$`n2'` <- round(sample / (r1 + r2) * r2)
+          res$`n1'` <- sample - res$`n2'`
+        }else{
+          res$n2 <- round(sample / (r1 + r2) * r2)
+          res$n1 <- sample - res$n2
+        }
+
+
       }
     }
 
@@ -383,7 +344,7 @@ rpower_t_test <- function(n1 = NULL,
           power = NULL,
           alpha = res$Alpha[i],
           type = type,
-          alternative = alternative,
+          tail= tail,
           ratio = ratio,
           sd1 = sd1,
           sd2 = sd2,
@@ -391,13 +352,14 @@ rpower_t_test <- function(n1 = NULL,
         )
       } else {
         power_t_test(
-          n1 = if (drop > 0) res$`n1'`[i] else res$n1[i],
+          n1 = if (drop > 0) res$`n'`[i] else res$n[i],
           n2 = NULL,
           d = res$Effect_Size[i],
           power = NULL,
           alpha = res$Alpha[i],
           type = type,
-          alternative = alternative,
+          tail= tail,
+          ratio = ratio,
           sd1 = sd1,
           sd2 = sd2,
           population = population
@@ -422,7 +384,7 @@ rpower_t_test <- function(n1 = NULL,
               power = NULL,
               alpha = alpha[j],
               type = type,
-              alternative = alternative,
+              tail= tail,
               ratio = ratio,
               sd1 = sd1,
               sd2 = sd2,
@@ -436,7 +398,7 @@ rpower_t_test <- function(n1 = NULL,
               power = NULL,
               alpha = alpha[j],
               type = type,
-              alternative = alternative,
+              tail= tail,
               sd1 = sd1,
               sd2 = sd2,
               population = population
@@ -518,7 +480,7 @@ rpower_t_test <- function(n1 = NULL,
               power = power[j],
               alpha = alpha[k],
               type = type,
-              alternative = alternative,
+              tail= tail,
               sd1 = sd1,
               sd2 = sd2,
               population = population
@@ -531,7 +493,7 @@ rpower_t_test <- function(n1 = NULL,
               power = power[j],
               alpha = alpha[k],
               type = type,
-              alternative = alternative,
+              tail= tail,
               sd1 = sd1,
               sd2 = sd2,
               population = population
@@ -593,7 +555,7 @@ rpower_t_test <- function(n1 = NULL,
               power = power[j],
               alpha = NULL,
               type = type,
-              alternative = alternative,
+              tail= tail,
               sd1 = sd1,
               sd2 = sd2,
               population = population
@@ -606,7 +568,7 @@ rpower_t_test <- function(n1 = NULL,
               power = power[j],
               alpha = NULL,
               type = type,
-              alternative = alternative,
+              tail= tail,
               sd1 = sd1,
               sd2 = sd2,
               population = population
@@ -655,7 +617,7 @@ rpower_t_test <- function(n1 = NULL,
 
   # Plotting code
   if (plot) {
-    side = ifelse(alternative == "two.sided", "Two-sided", "One-sided")
+    side = ifelse(tail == "two", "Two-sided", "One-sided")
 
     if (is.null(power) && !is.null(n1)) {
       title = "Power vs Effect Size by Alpha"
@@ -772,7 +734,7 @@ rpower_t_test <- function(n1 = NULL,
     cat("Test ................................", bold("Paired-Samples t-Test"), "\n")
   }
 
-  if (alternative == "two.sided") {
+  if (tail == "two") {
     if (type == "one.sample") {
       cat("Alternative Hypothesis ..............",
           bold("Two-Sided (H1: μ ≠ μ₀)"), "\n")
@@ -783,18 +745,7 @@ rpower_t_test <- function(n1 = NULL,
     }
   }
 
-  if (alternative == "less") {
-    if (type == "one.sample") {
-      cat("Alternative Hypothesis ..............",
-          bold("One-Sided (H1: μ < μ₀)"), "\n")
-    }
-    if (type != "one.sample") {
-      cat("Alternative Hypothesis ..............",
-          bold("One-Sided (H1: μ₁ < μ₂)"), "\n")
-    }
-  }
-
-  if (alternative == "greater") {
+  if (tail == "one") {
     if (type == "one.sample") {
       cat("Alternative Hypothesis ..............",
           bold("One-Sided (H1: μ > μ₀)"), "\n")
@@ -836,10 +787,10 @@ rpower_t_test <- function(n1 = NULL,
     }
   }
 
-  # if (type == "two.sample" & is.null(n1)) {
-  #   cat("Allocation ratio (n2/n1) ............", bold(ratio), "\n")
-  # }
-  #
+  if (type == "two.sample" & is.null(n1)) {
+    cat("Allocation ratio (n2/n1) ............", bold(ratio), "\n")
+  }
+
   cat(".............................................................\n")
   cat("\n")
 
@@ -850,7 +801,7 @@ rpower_t_test <- function(n1 = NULL,
         cat(bold("The required total sample size, n' =", res$`n'`), "\n")
         if (type == "two.sample") {
           cat(bold("This includes an adjustment for a", paste0(drop * 100, "%"), "dropout rate."), "\n")
-          cat(bold("Group sizes: n1 =", res$n1, "and n2 =", res$n2), "\n")
+          cat(bold("Group sizes: n1 =", res$`n1'`, "and n2 =", res$`n2'`), "\n")
         } else {
           cat(bold("This includes an adjustment for a", paste0(drop * 100, "%"), "dropout rate."), "\n")
         }

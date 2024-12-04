@@ -1,0 +1,13 @@
+d = 0.5                    # Medium effect size
+power = c(0.8)              # Standard power
+alpha = c(0.05)
+n1 =NULL
+n2=NULL# Standard alpha
+type = "paired"
+tail = "two"
+drop = 0
+ratio=2
+plot = T
+population = NULL
+sd1 = 1
+sd2 = NULL

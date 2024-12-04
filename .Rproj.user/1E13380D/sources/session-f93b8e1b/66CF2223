@@ -3,7 +3,7 @@
     "path": "~/GitHub/powerplus/R/rpower_t_test.R",
     "project_path": "R/rpower_t_test.R",
     "type": "r_source",
-    "hash": "1212951477",
+    "hash": "0",
     "contents": "",
     "dirty": false,
     "created": 1733215638906.0,
@@ -12,15 +12,16 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "413,29",
-        "scrollLine": "398"
+        "cursorPosition": "83,15",
+        "scrollLine": "0",
+        "docOutlineVisible": "1"
     },
-    "folds": "192|19|294|2|\n539|31|558|4|\n587|13|675|2|\n",
+    "folds": "41|30|61|2|\n63|35|80|2|\n587|13|675|2|\n",
     "lastKnownWriteTime": 1733215423,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1733234333109,
+    "last_content_update": 1733303134600,
     "read_only": false,
     "read_only_alternatives": []
 }
