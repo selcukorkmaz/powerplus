@@ -1,0 +1,13 @@
+d = 0.5                    # Medium effect size
+power = c(0.8,0.9)              # Standard power
+alpha = NULL
+n1 =c(100,200)
+n2=c(100,200)# Standard alpha
+type = "two.sample"
+tail = "two"
+drop = 0
+ratio=1
+plot = T
+population = NULL
+sd1 = 1
+sd2 = NULL

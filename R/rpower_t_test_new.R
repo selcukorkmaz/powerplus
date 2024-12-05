@@ -126,7 +126,6 @@ power_t_test <- function(n1 = NULL,
       }
     })
 
-
     total_n <- ceiling(res)
     if (type == "two.sample") {
       return(list(n1 = ceiling(total_n/2), n2 = ceiling(total_n/2), n = total_n))
@@ -290,7 +289,7 @@ rpower_t_test <- function(n1 = NULL,
 
     # Adjust n1 and n2 if it's a two-sample test
     if (type == "two.sample") {
-      sample = ifelse(drop > 0, res$`n'`, res$n)
+      if(drop > 0) sample = res$`n'` else sample = res$n
       odd_indices <- which(sample %% 2 != 0)
       sample[odd_indices] <- sample[odd_indices] + 1
       if (ratio == 1) {
@@ -424,45 +423,81 @@ rpower_t_test <- function(n1 = NULL,
     )
 
     if (type == "two.sample") {
-      res$n2 <- n2
+      paths = unlist(lapply(names(p_list), function(top_level) {
+        lapply(names(p_list[[top_level]]), function(second_level) {
+          paste(top_level, second_level, names(p_list[[top_level]][[second_level]]), sep = "$")
+        })
+      }))
+      res$n2 <- as.numeric(sapply(strsplit(paths, "\\$"), function(x) x[1]))
       res$n <- res$n1 + res$n2
     } else {
       res$n <- res$n1
     }
 
-    # Adjust for dropout rate if applicable
-    if (drop > 0) {
-      res$Dropout_Rate <- drop
-      res$`n1'` <- ceiling(res$n1 / (1 - drop))
-      if (type == "two.sample") {
-        res$`n2'` <- ceiling(res$n2 / (1 - drop))
-        res$`n'` <- res$`n1'` + res$`n2'`
-      } else {
-        res$`n'` <- res$`n1'`
-      }
+    # # Adjust n for dropout rate if drop > 0
+    # if (drop > 0) {
+    #   res$Dropout_Rate <- drop
+    #   res$`n1'` <- ceiling(res$n1 / (1 - drop))
+    #   if (type == "two.sample") {
+    #     res$`n2'` <- ceiling(res$n2 / (1 - drop))
+    #     res$`n'` <- res$`n1'` + res$`n2'`
+    #   } else {
+    #     res$`n'` <- res$`n1'`
+    #   }
+    # }
+    #
+    # # Adjust n1 and n2 if it's a two-sample test
+    # if (type == "two.sample") {
+    #   if(drop > 0) sample = res$`n'` else sample = res$n
+    #   odd_indices <- which(sample %% 2 != 0)
+    #   sample[odd_indices] <- sample[odd_indices] + 1
+    #   if (ratio == 1) {
+    #     # Adjust n' to be even where necessary
+    #     if(drop > 0){
+    #       res$`n1'` <- sample / 2
+    #       res$`n2'` <- sample / 2
+    #     }else{
+    #       res$n1 <- sample / 2
+    #       res$n2 <- sample / 2
+    #     }
+    #   } else if (ratio >= 1) {
+    #
+    #     r2 <- ratio
+    #     r1 <- 1
+    #
+    #     if(drop > 0){
+    #       res$`n1'` <- round(sample / (r1 + r2) * r1)
+    #       res$`n2'` <- sample - res$`n1'`
+    #
+    #       res$n1 <- round(res$n / (r1 + r2) * r1)
+    #       res$n2 <- res$n - res$n1
+    #     }else{
+    #       res$n1 <- round(sample / (r1 + r2) * r1)
+    #       res$n2 <- sample - res$n1
+    #     }
+    #
+    #   } else {
+    #     r2 <- 1
+    #     r1 <- 1 / ratio
+    #
+    #     if(drop > 0){
+    #       res$`n2'` <- round(sample / (r1 + r2) * r2)
+    #       res$`n1'` <- sample - res$`n2'`
+    #     }else{
+    #       res$n2 <- round(sample / (r1 + r2) * r2)
+    #       res$n1 <- sample - res$n2
+    #     }
+    #
+    #
+    #   }
+    # }
+
+    if (type == "two.sample"){
+     res <- res[,c(1,5,6,2:4)]
+    }else{
+      res <- res[,c(1,5,2:4)]
     }
 
-    # Adjust n1 and n2 if it's a two-sample test
-    if (type == "two.sample") {
-      if (ratio == 1) {
-        # Adjust n' to be even where necessary
-        odd_indices <- which(res$`n'` %% 2 != 0)
-        res$`n'`[odd_indices] <- res$`n'`[odd_indices] + 1
-
-        res$n1 <- res$`n'` / 2
-        res$n2 <- res$`n'` / 2
-      } else if (ratio >= 1) {
-        r2 <- ratio
-        r1 <- 1
-        res$n1 <- round(res$`n'` / (r1 + r2) * r1)
-        res$n2 <- res$`n'` - res$n1
-      } else {
-        r2 <- 1
-        r1 <- 1 / ratio
-        res$n2 <- round(res$`n'` / (r1 + r2) * r2)
-        res$n1 <- res$`n'` - res$n2
-      }
-    }
   }
   # When d is NULL, calculate effect size given n and power
   else if (is.null(d)) {
@@ -510,7 +545,7 @@ rpower_t_test <- function(n1 = NULL,
 
     # Create result data frame
     res <- data.frame(
-      "n1" = rep(as.numeric(names(d_list)), each = length(d_list[[1]][[1]])),
+      "n1" = rep(as.numeric(names(d_list)), times = sapply(d_list, function(x) length(x))),
       "Target_Power" = rep(as.numeric(names(d_list[[1]])), times = length(d_list)),
       "Alpha" = as.numeric(names(d_list[[1]][[1]])),
       "Effect_Size" = as.numeric(unlist(d_list)),
@@ -518,26 +553,37 @@ rpower_t_test <- function(n1 = NULL,
     )
 
     if (type == "two.sample") {
-      res$n2 <- n2
+      paths = unlist(lapply(names(d_list), function(top_level) {
+        lapply(names(d_list[[top_level]]), function(second_level) {
+          paste(top_level, second_level, names(d_list[[top_level]][[second_level]]), sep = "$")
+        })
+      }))
+      res$n2 <- as.numeric(sapply(strsplit(paths, "\\$"), function(x) x[1]))
       res$n <- res$n1 + res$n2
     } else {
       res$n <- res$n1
     }
 
     # Adjust for dropout rate if applicable
-    if (drop > 0) {
-      res$Dropout_Rate <- drop
-      res$`n1'` <- ceiling(res$n1 / (1 - drop))
-      if (type == "two.sample") {
-        res$`n2'` <- ceiling(res$n2 / (1 - drop))
-        res$`n'` <- res$`n1'` + res$`n2'`
-      } else {
-        res$`n'` <- res$`n1'`
-      }
-    }
+    # if (drop > 0) {
+    #   res$Dropout_Rate <- drop
+    #   res$`n1'` <- ceiling(res$n1 / (1 - drop))
+    #   if (type == "two.sample") {
+    #     res$`n2'` <- ceiling(res$n2 / (1 - drop))
+    #     res$`n'` <- res$`n1'` + res$`n2'`
+    #   } else {
+    #     res$`n'` <- res$`n1'`
+    #   }
+    # }
 
     # Calculate actual power with adjusted sample sizes
-    res$Actual_Power <- res$Target_Power
+    # res$Actual_Power <- res$Target_Power
+
+    if (type == "two.sample"){
+      res <- res[,c(1,5,6,2:4)]
+    }else{
+      res <- res[,c(1,5,2:4)]
+    }
   }
   # When alpha is NULL, calculate alpha given n, d, and power
   else if (is.null(alpha)) {
@@ -585,7 +631,7 @@ rpower_t_test <- function(n1 = NULL,
 
     # Create result data frame
     res <- data.frame(
-      "n1" = rep(as.numeric(names(a_list)), each = length(a_list[[1]][[1]])),
+      "n1" = rep(as.numeric(names(a_list)), times = sapply(a_list, function(x) length(x))),
       "Target_Power" = rep(as.numeric(names(a_list[[1]])), times = length(a_list)),
       "Effect_Size" = rep(as.numeric(names(a_list[[1]][[1]])), times = length(a_list) * length(a_list[[1]])),
       "Alpha" = as.numeric(unlist(a_list)),
@@ -593,26 +639,36 @@ rpower_t_test <- function(n1 = NULL,
     )
 
     if (type == "two.sample") {
-      res$n2 <- n2
+      paths = unlist(lapply(names(a_list), function(top_level) {
+        lapply(names(a_list[[top_level]]), function(second_level) {
+          paste(top_level, second_level, names(a_list[[top_level]][[second_level]]), sep = "$")
+        })
+      }))
+      res$n2 <- as.numeric(sapply(strsplit(paths, "\\$"), function(x) x[1]))
       res$n <- res$n1 + res$n2
     } else {
       res$n <- res$n1
     }
 
-    # Adjust for dropout rate if applicable
-    if (drop > 0) {
-      res$Dropout_Rate <- drop
-      res$`n1'` <- ceiling(res$n1 / (1 - drop))
-      if (type == "two.sample") {
-        res$`n2'` <- ceiling(res$n2 / (1 - drop))
-        res$`n'` <- res$`n1'` + res$`n2'`
-      } else {
-        res$`n'` <- res$`n1'`
-      }
+    # # Adjust for dropout rate if applicable
+    # if (drop > 0) {
+    #   res$Dropout_Rate <- drop
+    #   res$`n1'` <- ceiling(res$n1 / (1 - drop))
+    #   if (type == "two.sample") {
+    #     res$`n2'` <- ceiling(res$n2 / (1 - drop))
+    #     res$`n'` <- res$`n1'` + res$`n2'`
+    #   } else {
+    #     res$`n'` <- res$`n1'`
+    #   }
+    # }
+    #
+    # # Calculate actual power with adjusted sample sizes
+    # res$Actual_Power <- res$Target_Power
+    if (type == "two.sample"){
+      res <- res[,c(1,5,6,2:4)]
+    }else{
+      res <- res[,c(1,5,2:4)]
     }
-
-    # Calculate actual power with adjusted sample sizes
-    res$Actual_Power <- res$Target_Power
   }
 
   # Plotting code
@@ -852,6 +908,6 @@ rpower_t_test <- function(n1 = NULL,
 
   # Remove columns with all NA values before returning
   res <- res[, colSums(is.na(res)) < nrow(res)]
-
+  rownames(res) = NULL
   return(res)
 }

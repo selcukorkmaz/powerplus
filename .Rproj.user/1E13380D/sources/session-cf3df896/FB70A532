@@ -3,7 +3,7 @@
     "path": "~/GitHub/powerplus/R/examples.R",
     "project_path": "R/examples.R",
     "type": "r_source",
-    "hash": "3844647750",
+    "hash": "0",
     "contents": "",
     "dirty": false,
     "created": 1733215683301.0,
@@ -12,16 +12,16 @@
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "25,1",
-        "scrollLine": "0",
+        "cursorPosition": "22,22",
+        "scrollLine": "14",
         "docOutlineVisible": "1"
     },
     "folds": "",
-    "lastKnownWriteTime": 1733320369,
+    "lastKnownWriteTime": 1733407252,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1733320369372,
+    "last_content_update": 1733407252547,
     "read_only": false,
     "read_only_alternatives": []
 }

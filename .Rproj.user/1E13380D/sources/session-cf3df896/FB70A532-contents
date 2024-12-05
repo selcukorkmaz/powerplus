@@ -1,14 +1,14 @@
 # Example 1: Basic two-sample t-test with single effect size
 rpower_t_test(
-  d = 0.5,                    # Medium effect size
-  power = c(0.8),               # Standard power
-  alpha = c(0.05),
-  n1 =NULL,
-  n2=NULL,
-  type = "paired",
+  d = c(0.5,0.7),                    # Medium effect size
+  power =0.8,               # Standard power
+  alpha = NULL,
+  n1 =c(100,200),
+  n2=c(100,200),
+  type = "two.sample",
   tail = "two",
-  drop = 0,
-  ratio=2,
+  drop = 0.1,
+  ratio=1,
   plot = T,
   population = NULL,
   sd1 = 1,
@@ -21,7 +21,7 @@ rpower_t_test(
   power = c(0.80, 0.90),      # Two power levels
   alpha = 0.05,
   type = "two.sample",
-  alternative = "two.sided",
+  tail = "two",
   plot = TRUE
 )
 
@@ -31,7 +31,7 @@ rpower_t_test(
   power = 0.80,
   alpha = c(0.01, 0.05, 0.10), # Three alpha levels
   type = "two.sample",
-  alternative = "two.sided",
+  tail = "two",
   plot = TRUE
 )
 
@@ -42,17 +42,17 @@ rpower_t_test(
   alpha = 0.05,
   n = 100,
   type = "one.sample",        # Changed to one-sample
-  alternative = "two.sided",
+  tail = "two",
   plot = TRUE
 )
 
-# Example 5: Different alternatives
+# Example 5: Different tails
 example5 <- rpower_t_test(
   d = 0.5,
   power = 0.80,
   alpha = 0.05,
   type = "two.sample",
-  alternative = "greater",    # One-sided test
+  tail = "one",    # One-sided test
   plot = TRUE
 )
 
@@ -62,7 +62,7 @@ example6 <- rpower_t_test(
   power = 0.80,
   alpha = 0.05,
   type = "two.sample",
-  alternative = "two.sided",
+  tail = "two",
   population = 1000,          # Fixed population size
   plot = TRUE
 )
@@ -74,7 +74,7 @@ example7 <- rpower_t_test(
   alpha = 0.05,
   drop = 0.2,                # 20% dropout rate
   type = "two.sample",
-  alternative = "two.sided",
+  tail = "two",
   plot = TRUE
 )
 
@@ -84,7 +84,7 @@ example8 <- rpower_t_test(
   power = 0.80,
   alpha = 0.05,
   type = "paired",           # Paired test
-  alternative = "two.sided",
+  tail = "two",
   plot = TRUE
 )
 
@@ -94,7 +94,7 @@ example9 <- rpower_t_test(
   power = 0.80,
   alpha = 0.05,
   type = "two.sample",
-  alternative = "two.sided",
+  tail = "two",
   ratio = 2,                 # Ratio of n2/n1 = 2
   plot = TRUE
 )
@@ -105,6 +105,6 @@ example10 <- rpower_t_test(
   power = c(0.80, 0.85, 0.90),
   alpha = c(0.01, 0.05),
   type = "two.sample",
-  alternative = "two.sided",
+  tail = "two",
   plot = TRUE
 )
